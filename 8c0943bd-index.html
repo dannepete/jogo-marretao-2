@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>C&amp;C - Caçadores e Corredores</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:#0f172a;color:#f1f5f9;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+h1,h2,h3,p{margin:0}
+.screen{display:none;width:100%;min-height:100vh;min-height:100dvh;padding:64px 18px 28px;flex-direction:column;align-items:center;gap:16px;text-align:center}
+.screen.active{display:flex}
+.btn{appearance:none;border:0;border-radius:14px;padding:16px 20px;font-size:1.1rem;font-weight:700;color:#fff;background:#2563eb;width:100%;max-width:420px;cursor:pointer}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.red{background:#dc2626}.btn.green{background:#16a34a}.btn.gray{background:#475569}
+.btn.big{padding:28px 20px;font-size:1.7rem}
+input[type=text],select{width:100%;max-width:420px;padding:14px;font-size:1.05rem;border-radius:12px;border:2px solid #334155;background:#1e293b;color:#f1f5f9}
+.title{font-size:1.9rem;font-weight:800}
+.sub{color:#94a3b8;font-size:.95rem}
+.err{color:#fca5a5;min-height:1.2em;font-size:.95rem}
+.list{width:100%;max-width:420px;display:flex;flex-direction:column;gap:6px}
+.row{display:flex;justify-content:space-between;background:#1e293b;border-radius:10px;padding:10px 14px;text-align:left}
+.matrix{font-size:1.1rem;font-weight:700;background:#1e293b;border-radius:12px;padding:10px 18px}
+#map-preview{max-width:200px;max-height:140px;border-radius:10px;display:none;border:2px solid #334155}
+/* roleta */
+#screen-roulette{justify-content:center}
+#roulette-text{font-size:2.4rem;font-weight:900;min-height:3.2rem;word-break:break-word}
+#roulette-text.fixed{color:#facc15;transform:scale(1.15)}
+/* corredor */
+.cd{font-size:1.3rem;font-weight:700;color:#fbbf24}
+/* quiz */
+#screen-quiz{padding-top:70px}
+#btn-giveup{max-width:none;position:absolute;top:0;left:0;right:0;border-radius:0;padding:12px;font-size:1rem}
+#hack-timer{font-size:3.4rem;font-weight:900;color:#38bdf8}
+#hack-delta{min-height:1.5rem;font-weight:800}
+#hack-delta.good{color:#4ade80}#hack-delta.bad{color:#f87171}
+#q-timer{font-size:1.1rem;color:#fbbf24;font-weight:700}
+#quiz-question{font-size:1.25rem;font-weight:700;max-width:420px}
+.opts{display:flex;flex-direction:column;gap:10px;width:100%;max-width:420px}
+.opt{background:#1e293b;border:2px solid #334155;color:#f1f5f9;border-radius:12px;padding:14px;font-size:1.05rem;font-weight:600;cursor:pointer}
+.opt.ok{background:#16a34a;border-color:#22c55e}.opt.no{background:#dc2626;border-color:#ef4444}
+/* caçador */
+#screen-hunter .count{font-size:5rem;font-weight:900;color:#38bdf8}
+/* azul */
+#screen-blue{background:#1e40af;justify-content:center}
+#blue-timer{font-size:3rem;font-weight:900}
+/* fim */
+#screen-end{justify-content:center;font-size:2.4rem;font-weight:900}
+#screen-end.runners{background:#16a34a}
+#screen-end.hunter{background:#0b1e5b}
+/* popups universais */
+#popups{position:fixed;top:8px;left:8px;right:62px;z-index:9000;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.popup{background:#1d4ed8;border:2px solid #93c5fd;border-radius:12px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:700;font-size:.95rem;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.popup .t{font-size:1.2rem;font-variant-numeric:tabular-nums}
+.popup.grace .t{color:#fde047}
+.popup.dead{background:#0b1220;border-color:#64748b}
+/* modais */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:9500;padding:20px}
+.modal.open{display:flex}
+.card{background:#1e293b;border-radius:18px;padding:22px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center}
+#capture-alert{z-index:9600;background:rgba(220,38,38,.92)}
+#capture-alert .big{font-size:3.2rem;font-weight:900;animation:pulse .5s infinite alternate}
+@keyframes pulse{from{transform:scale(1)}to{transform:scale(1.15)}}
+#map-view{z-index:9700}
+#map-view img{max-width:100%;max-height:100%;object-fit:contain}
+/* botões flutuantes */
+#btn-vote,#btn-map{position:fixed;z-index:9800;width:46px;height:46px;border-radius:50%;border:0;background:#334155;color:#fff;font-size:1.4rem;cursor:pointer}
+#btn-vote{top:8px;right:8px}
+#btn-map{bottom:14px;right:12px}
+#vote-badge{position:absolute;top:-6px;right:-6px;background:#dc2626;border-radius:10px;font-size:.7rem;padding:2px 6px;display:none}
+#netbanner{position:fixed;top:0;left:0;right:0;z-index:9900;background:#b91c1c;text-align:center;padding:8px;font-weight:700;display:none}
+</style>
+</head>
+<body>
+
+<div id="netbanner">Ligação perdida… a tentar reconectar</div>
+<div id="popups"></div>
+<button id="btn-vote" hidden aria-label="Reiniciar">🔄<span id="vote-badge"></span></button>
+<button id="btn-map" hidden aria-label="Ver mapa">🗺️</button>
+
+<!-- 1. LOGIN -->
+<div id="screen-login" class="screen active">
+  <h1 class="title">C&amp;C</h1>
+  <p class="sub">Caçadores e Corredores</p>
+  <input type="text" id="inp-name" maxlength="15" placeholder="O teu nome" autocomplete="off">
+  <button class="btn" id="btn-connect">Conectar</button>
+  <p class="err" id="login-err"></p>
+</div>
+
+<!-- 2. LOBBY -->
+<div id="screen-lobby" class="screen">
+  <h2 class="title">Lobby</h2>
+  <button class="btn gray" id="btn-pick-map">📸 Escolher Imagem do Mapa</button>
+  <img id="map-preview" alt="Mapa">
+  <input type="file" id="file-map" accept="image/*" hidden>
+  <button class="btn green" id="btn-ready" disabled>Ficar Pronto</button>
+  <p class="sub" id="lobby-status"></p>
+  <div class="list" id="lobby-list"></div>
+</div>
+
+<!-- 3. ROLETA -->
+<div id="screen-roulette" class="screen">
+  <p class="sub" id="roulette-sub">A sortear funções…</p>
+  <div id="roulette-text"></div>
+</div>
+
+<!-- 4. CORREDOR: INÍCIO -->
+<div id="screen-runner" class="screen">
+  <div class="matrix">Matriz Global: <span class="mx">0</span>/<span class="mt">25</span></div>
+  <div class="cd" id="cooldown" style="display:none"></div>
+  <p class="sub" id="runner-msg"></p>
+  <button class="btn big red" id="btn-hack">HACKEAR</button>
+</div>
+
+<!-- 4.2 ESCOLHA DO COMPUTADOR -->
+<div id="screen-pick" class="screen">
+  <div class="matrix">Matriz Global: <span class="mx">0</span>/<span class="mt">25</span></div>
+  <h2 class="title" style="font-size:1.5rem">Em que computador você está?</h2>
+  <div class="list" id="comp-list"></div>
+  <button class="btn gray" id="btn-pick-back">Voltar</button>
+</div>
+
+<!-- 4.3 QUIZ -->
+<div id="screen-quiz" class="screen">
+  <button class="btn red" id="btn-giveup">Desistir do hackeio</button>
+  <p class="sub" id="quiz-comp"></p>
+  <div id="hack-timer">90</div>
+  <div id="hack-delta"></div>
+  <div id="q-timer"></div>
+  <p id="quiz-question"></p>
+  <div class="opts" id="quiz-opts"></div>
+</div>
+
+<!-- 5. CAÇADOR -->
+<div id="screen-hunter" class="screen">
+  <div class="matrix">Matriz Global: <span class="mx">0</span>/<span class="mt">25</span></div>
+  <div id="hunter-wait" style="display:flex;flex-direction:column;gap:14px;align-items:center">
+    <div class="count" id="hunter-count">30</div>
+    <p class="title" style="font-size:1.4rem">Permaneça parado até o fim do timer</p>
+  </div>
+  <div id="hunter-ready" style="display:none;flex-direction:column;gap:14px;align-items:center;width:100%">
+    <button class="btn big red" id="btn-captured">Capturado</button>
+    <p class="sub">Aperte no botão caso tenhas encostado em algum corredor.</p>
+  </div>
+</div>
+
+<!-- 5.x CAPTURADO / CONGELADO (ecrã azul) -->
+<div id="screen-blue" class="screen">
+  <h2 class="title" id="blue-title"></h2>
+  <p id="blue-sub"></p>
+  <div id="blue-timer"></div>
+  <button class="btn green" id="btn-saved" style="display:none">Fui salvo.</button>
+  <div class="list" id="save-list"></div>
+  <p id="save-msg" class="sub"></p>
+</div>
+
+<!-- FIM -->
+<div id="screen-end" class="screen"><div id="end-text"></div></div>
+
+<!-- MODAIS -->
+<div id="capture-alert" class="modal">
+  <div class="card" style="background:transparent">
+    <div class="big">CAPTURE!</div>
+    <button class="btn gray" id="btn-alert-ok">OK</button>
+  </div>
+</div>
+
+<div id="capture-form" class="modal">
+  <div class="card">
+    <h3>Congelar corredor</h3>
+    <select id="sel-target"></select>
+    <select id="sel-capsule">
+      <option value="1">Cápsula 1</option>
+      <option value="2">Cápsula 2</option>
+      <option value="3">Cápsula 3</option>
+    </select>
+    <p class="err" id="form-err"></p>
+    <button class="btn red" id="btn-freeze">Congelar!</button>
+    <button class="btn gray" id="btn-form-cancel">Cancelar</button>
+  </div>
+</div>
+
+<div id="save-prompt" class="modal">
+  <div class="card">
+    <p id="save-prompt-text" style="font-size:1.15rem;font-weight:700"></p>
+    <button class="btn green" id="btn-save-confirm">Confirmar</button>
+    <button class="btn gray" id="btn-save-cancel">Cancelar</button>
+  </div>
+</div>
+
+<div id="vote-modal" class="modal">
+  <div class="card">
+    <p style="font-size:1.15rem;font-weight:700">Desejas reiniciar? (Todos os jogadores devem confirmar)</p>
+    <div style="display:flex;gap:10px;align-items:center;justify-content:center">
+      <button class="btn green" id="btn-vote-confirm" style="width:auto">Confirmar</button>
+      <span id="vote-count" style="font-weight:800;font-size:1.2rem"></span>
+    </div>
+    <button class="btn gray" id="btn-vote-close">Fechar</button>
+  </div>
+</div>
+
+<div id="map-view" class="modal"><img id="map-view-img" alt="Mapa"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+(function () {
+  'use strict';
+  var COMPS = ['X', 'Y', 'Z', 'K'];
+  var ROULETTE_MS = 2000, HOLD_MS = 1200, HUNTER_WAIT = 30;
+
+  function $(id) { return document.getElementById(id); }
+  function mk(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
+
+  var S = {
+    id: null, name: '', role: null, state: 'alive', mapData: null,
+    lobby: [], players: [], ready: false, loggedIn: false,
+    matrix: 0, total: 25, lastComp: null, cooldownEnd: 0,
+    popups: {}, voted: false, votes: 0, voteTotal: 0,
+    quizActive: false, awaiting: false, hackTimer: 90, quizComp: null, qLeft: 15,
+    hunterEnd: 0, over: false
+  };
+  var T = {}; // intervalos / timeouts
+
+  var screens = Array.prototype.slice.call(document.querySelectorAll('.screen'));
+  function show(id) { screens.forEach(function (s) { s.classList.toggle('active', s.id === id); }); }
+  function openModal(id) { $(id).classList.add('open'); }
+  function closeModal(id) { $(id).classList.remove('open'); }
+  function closeGameModals() { ['capture-alert', 'capture-form', 'save-prompt', 'vote-modal', 'map-view'].forEach(closeModal); }
+
+  var socket = io({ transports: ['websocket', 'polling'] });
+
+  /* ------------------------------- Ligação ------------------------------- */
+  socket.on('disconnect', function () { $('netbanner').style.display = 'block'; });
+  socket.on('connect', function () {
+    $('netbanner').style.display = 'none';
+    if (S.loggedIn) { // o servidor perdeu o jogador: voltar ao início
+      resetLocal(true);
+      show('screen-login');
+      $('login-err').textContent = 'A ligação foi perdida. Volta a conectar.';
+    }
+  });
+
+  /* -------------------------------- Login -------------------------------- */
+  function doLogin() {
+    var name = $('inp-name').value.trim();
+    if (!name) { $('login-err').textContent = 'Escreve um nome.'; return; }
+    $('login-err').textContent = '';
+    socket.emit('login', { name: name });
+  }
+  $('btn-connect').onclick = doLogin;
+  $('inp-name').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+  socket.on('login_error', function (d) { $('login-err').textContent = d.message; });
+  socket.on('login_ok', function (d) {
+    S.id = d.id; S.name = d.name; S.loggedIn = true;
+    show('screen-lobby');
+    renderLobby();
+  });
+
+  /* -------------------------------- Lobby -------------------------------- */
+  socket.on('lobby_update', function (d) { S.lobby = d.players; if (S.loggedIn && !S.role) renderLobby(); });
+  function renderLobby() {
+    var box = $('lobby-list'); clear(box);
+    var readyCount = 0;
+    S.lobby.forEach(function (p) {
+      if (p.ready) readyCount++;
+      if (p.id === S.id) S.ready = p.ready;
+      var r = mk('div', 'row'); r.appendChild(mk('span', '', p.name + (p.id === S.id ? ' (tu)' : '')));
+      r.appendChild(mk('span', '', p.ready ? '✅' : '⏳')); box.appendChild(r);
+    });
+    $('btn-ready').textContent = S.ready ? 'Cancelar Pronto' : 'Ficar Pronto';
+    $('btn-ready').disabled = !S.mapData;
+    $('lobby-status').textContent = S.lobby.length < 2
+      ? 'À espera de mais jogadores (mínimo 2)…'
+      : readyCount + ' / ' + S.lobby.length + ' prontos';
+  }
+  $('btn-pick-map').onclick = function () { $('file-map').click(); };
+  $('file-map').onchange = function () {
+    var f = this.files && this.files[0];
+    if (!f || f.type.indexOf('image/') !== 0) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      S.mapData = rd.result; // Base64 só na memória do telemóvel
+      $('map-preview').src = S.mapData; $('map-preview').style.display = 'block';
+      $('map-view-img').src = S.mapData;
+      renderLobby();
+    };
+    rd.readAsDataURL(f);
+  };
+  $('btn-ready').onclick = function () { socket.emit('toggle_ready', { hasMap: !!S.mapData }); };
+
+  /* ------------------------------- Roleta -------------------------------- */
+  socket.on('start_game_roulette', function (d) {
+    resetGameLocal();
+    S.role = d.role; S.state = 'alive'; S.total = d.total; S.over = false;
+    $('btn-vote').hidden = false;
+    $('btn-map').hidden = !S.mapData;
+    updateMatrix();
+    runRoulette(d.names, d.role);
+  });
+  function runRoulette(names, role) {
+    show('screen-roulette');
+    var el = $('roulette-text'); el.classList.remove('fixed');
+    $('roulette-sub').textContent = 'A sortear funções…';
+    var items = names.concat(['CAÇADOR', 'CORREDOR']), t0 = Date.now();
+    clearInterval(T.rou);
+    T.rou = setInterval(function () {
+      if (Date.now() - t0 >= ROULETTE_MS) {
+        clearInterval(T.rou);
+        el.textContent = role === 'hunter' ? '🎯 CAÇADOR' : '🏃 CORREDOR';
+        el.classList.add('fixed');
+        $('roulette-sub').textContent = 'A tua função!';
+        T.rouEnd = setTimeout(afterRoulette, HOLD_MS);
+        return;
+      }
+      el.textContent = items[Math.floor(Math.random() * items.length)];
+    }, 80);
+  }
+  function afterRoulette() { if (S.role === 'hunter') startHunter(); else goHome(); }
+
+  /* ------------------------ Navegação central de jogo --------------------- */
+  function goHome() {
+    if (S.over) return;
+    if (S.role === 'hunter') { show('screen-hunter'); return; }
+    if (S.state === 'freezing' || S.state === 'frozen') { show('screen-blue'); return; }
+    show('screen-runner'); updateHome();
+  }
+  function updateMatrix() {
+    Array.prototype.forEach.call(document.querySelectorAll('.mx'), function (e) { e.textContent = S.matrix; });
+    Array.prototype.forEach.call(document.querySelectorAll('.mt'), function (e) { e.textContent = S.total; });
+  }
+  socket.on('update_computers', function (d) { S.matrix = d.count; S.total = d.total; updateMatrix(); });
+  socket.on('players_update', function (d) { S.players = d.players; if ($('capture-form').classList.contains('open')) fillForm(); });
+
+  /* --------------------------- Corredor: início --------------------------- */
+  function fmt(sec) { var m = Math.floor(sec / 60), s = sec % 60; return m + ':' + (s < 10 ? '0' : '') + s; }
+  function updateHome() {
+    var left = Math.ceil((S.cooldownEnd - Date.now()) / 1000);
+    var cd = $('cooldown');
+    if (left > 0) { cd.style.display = 'block'; cd.textContent = '⏳ Cooldown: ' + fmt(left); $('btn-hack').disabled = true; }
+    else { cd.style.display = 'none'; $('btn-hack').disabled = false; }
+  }
+  setInterval(function () { if (S.screenIs === 'x' || $('screen-runner').classList.contains('active')) updateHome(); }, 500);
+
+  $('btn-hack').onclick = function () {
+    if (Date.now() < S.cooldownEnd) return;
+    buildComps(); show('screen-pick');
+  };
+  function buildComps() {
+    var box = $('comp-list'); clear(box);
+    COMPS.forEach(function (c) {
+      var b = mk('button', 'btn', 'Computador ' + c);
+      if (c === S.lastComp) { b.disabled = true; }
+      b.onclick = function () { startQuiz(c); };
+      box.appendChild(b);
+    });
+  }
+  $('btn-pick-back').onclick = goHome;
+
+  /* --------------------------------- Quiz --------------------------------- */
+  function startQuiz(comp) {
+    stopQuiz();
+    S.quizActive = true; S.awaiting = false; S.quizComp = comp; S.hackTimer = 90;
+    $('quiz-comp').textContent = 'Computador ' + comp;
+    $('quiz-question').textContent = 'A carregar pergunta…';
+    clear($('quiz-opts')); $('hack-delta').textContent = ''; $('q-timer').textContent = '';
+    updateHackTimer(); show('screen-quiz');
+    T.hack = setInterval(function () {
+      if (!S.quizActive) return;
+      S.hackTimer--; updateHackTimer();
+      if (S.hackTimer <= 0) finishHack();
+    }, 1000);
+    socket.emit('get_question', { computer: comp });
+  }
+  function stopQuiz() {
+    S.quizActive = false; S.awaiting = false;
+    clearInterval(T.hack); clearInterval(T.q); clearTimeout(T.next);
+  }
+  function updateHackTimer() { $('hack-timer').textContent = Math.max(0, S.hackTimer); }
+
+  socket.on('receive_question', function (d) {
+    if (!S.quizActive) return;
+    S.awaiting = false;
+    $('quiz-question').textContent = d.question;
+    var box = $('quiz-opts'); clear(box);
+    d.options.forEach(function (t, i) {
+      var b = mk('button', 'opt', t); b.onclick = function () { submitAnswer(i, b); }; box.appendChild(b);
+    });
+    S.qLeft = 15; $('q-timer').textContent = '⏱ 15s';
+    clearInterval(T.q);
+    T.q = setInterval(function () {
+      if (!S.quizActive || S.awaiting) return;
+      S.qLeft--; $('q-timer').textContent = '⏱ ' + S.qLeft + 's';
+      if (S.qLeft <= 0) submitAnswer(-1, null);
+    }, 1000);
+  });
+  function submitAnswer(i, btn) {
+    if (S.awaiting || !S.quizActive) return;
+    S.awaiting = true; clearInterval(T.q);
+    Array.prototype.forEach.call($('quiz-opts').children, function (b) { b.disabled = true; });
+    S.pickedBtn = btn;
+    socket.emit('answer_question', { answer: i });
+  }
+  socket.on('answer_result', function (d) {
+    if (!S.quizActive) return;
+    var kids = $('quiz-opts').children;
+    if (kids[d.correctIndex]) kids[d.correctIndex].classList.add('ok');
+    if (!d.correct && S.pickedBtn) S.pickedBtn.classList.add('no');
+    S.hackTimer += d.correct ? -10 : 10;
+    var dl = $('hack-delta'); dl.textContent = d.correct ? '-10s ✔' : '+10s ✖'; dl.className = d.correct ? 'good' : 'bad';
+    updateHackTimer();
+    if (S.hackTimer <= 0) { finishHack(); return; }
+    T.next = setTimeout(function () {
+      if (!S.quizActive) return;
+      dl.textContent = ''; socket.emit('get_question', {});
+    }, 800);
+  });
+  function finishHack() {
+    if (!S.quizActive) return;
+    var comp = S.quizComp;
+    stopQuiz();
+    $('quiz-question').textContent = 'Hackeio concluído! A validar…';
+    clear($('quiz-opts'));
+    socket.emit('hack_complete', { computer: comp });
+  }
+  socket.on('hack_success', function (d) {
+    S.lastComp = d.lastComp; S.cooldownEnd = Date.now() + d.cooldownMs;
+    $('runner-msg').textContent = 'Computador ' + d.lastComp + ' hackeado!';
+    goHome();
+  });
+  socket.on('hack_error', function (d) {
+    stopQuiz(); $('runner-msg').textContent = d.message || ''; goHome();
+  });
+  $('btn-giveup').onclick = function () {
+    stopQuiz(); socket.emit('cancel_hack'); $('runner-msg').textContent = ''; goHome();
+  };
+  socket.on('force_stop_hack', function () { stopQuiz(); });
+
+  /* -------------------------------- Caçador -------------------------------- */
+  function startHunter() {
+    show('screen-hunter');
+    $('hunter-wait').style.display = 'flex'; $('hunter-ready').style.display = 'none';
+    S.hunterEnd = Date.now() + HUNTER_WAIT * 1000;
+    clearInterval(T.hunter);
+    var upd = function () {
+      var left = Math.ceil((S.hunterEnd - Date.now()) / 1000);
+      if (left > 0) { $('hunter-count').textContent = left; return; }
+      clearInterval(T.hunter);
+      $('hunter-wait').style.display = 'none'; $('hunter-ready').style.display = 'flex';
+      openModal('capture-alert');
+      try { if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]); } catch (e) {}
+    };
+    upd(); T.hunter = setInterval(upd, 250);
+  }
+  $('btn-alert-ok').onclick = function () { closeModal('capture-alert'); };
+  $('btn-captured').onclick = function () { fillForm(); $('form-err').textContent = ''; openModal('capture-form'); };
+  $('btn-form-cancel').onclick = function () { closeModal('capture-form'); };
+  function fillForm() {
+    var sel = $('sel-target'), prev = sel.value; clear(sel);
+    var targets = S.players.filter(function (p) { return p.role === 'runner' && p.state === 'alive'; });
+    if (!targets.length) { var o = mk('option', '', 'Sem corredores ativos'); o.value = ''; sel.appendChild(o); }
+    targets.forEach(function (p) { var o = mk('option', '', p.name); o.value = p.id; sel.appendChild(o); });
+    if (prev) sel.value = prev;
+    var cs = $('sel-capsule').options;
+    for (var i = 0; i < cs.length; i++) {
+      var busy = Object.keys(S.popups).some(function (k) { return String(S.popups[k].capsule) === cs[i].value; });
+      cs[i].disabled = busy;
+    }
+    if ($('sel-capsule').selectedOptions[0] && $('sel-capsule').selectedOptions[0].disabled) {
+      for (var j = 0; j < cs.length; j++) if (!cs[j].disabled) { $('sel-capsule').selectedIndex = j; break; }
+    }
+  }
+  $('btn-freeze').onclick = function () {
+    var id = $('sel-target').value;
+    if (!id) { $('form-err').textContent = 'Escolhe um corredor.'; return; }
+    socket.emit('freeze_player', { targetId: id, capsule: Number($('sel-capsule').value) });
+  };
+  socket.on('freeze_ok', function () { closeModal('capture-form'); });
+  socket.on('freeze_error', function (d) { $('form-err').textContent = d.message; });
+
+  /* --------------------- Pop-ups universais de congelamento --------------------- */
+  function popupText(d) { return d.name + ' está na Cápsula ' + d.capsule; }
+  function popupTime(d) { return (d.grace > 0 ? '⏸ ' : '') + d.remaining + 's'; }
+  socket.on('popup_freeze_start', function (d) {
+    S.popups[d.id] = d;
+    var c = mk('div', 'popup' + (d.grace > 0 ? ' grace' : '')); c.id = 'pop-' + d.id;
+    c.appendChild(mk('span', 'm', popupText(d))); c.appendChild(mk('span', 't', popupTime(d)));
+    $('popups').appendChild(c);
+    if (d.id === S.id) enterBlue(d);
+    if ($('capture-form').classList.contains('open')) fillForm();
+  });
+  socket.on('popup_freeze_tick', function (d) {
+    var p = S.popups[d.id]; if (!p) return;
+    p.remaining = d.remaining; p.grace = d.grace;
+    var c = $('pop-' + d.id);
+    if (c) { c.classList.toggle('grace', d.grace > 0); c.querySelector('.t').textContent = popupTime(p); }
+    if (d.id === S.id && S.state === 'freezing') $('blue-timer').textContent = popupTime(p);
+  });
+  socket.on('popup_freeze_ended', function (d) {
+    delete S.popups[d.id];
+    var c = $('pop-' + d.id);
+    if (c) { c.classList.add('dead'); clear(c); c.appendChild(mk('span', 'm', d.name + ' foi congelado')); setTimeout(function () { if (c.parentNode) c.parentNode.removeChild(c); }, 4000); }
+    if (d.id === S.id) enterFrozen();
+    if ($('capture-form').classList.contains('open')) fillForm();
+  });
+  socket.on('popup_freeze_cancelled', function (d) {
+    delete S.popups[d.id];
+    var c = $('pop-' + d.id); if (c && c.parentNode) c.parentNode.removeChild(c);
+    if ($('capture-form').classList.contains('open')) fillForm();
+  });
+
+  /* ------------------------ Ecrã azul / salvamento ------------------------ */
+  function enterBlue(d) {
+    S.state = 'freezing'; stopQuiz();
+    closeModal('save-prompt');
+    $('blue-title').textContent = 'Foste capturado!';
+    $('blue-sub').textContent = 'Estás na Cápsula ' + d.capsule;
+    $('blue-timer').textContent = popupTime(d);
+    $('btn-saved').style.display = 'block'; clear($('save-list')); $('save-msg').textContent = '';
+    show('screen-blue');
+  }
+  function enterFrozen() {
+    S.state = 'frozen'; stopQuiz();
+    $('blue-title').textContent = 'Você foi congelado';
+    $('blue-sub').textContent = ''; $('blue-timer').textContent = '';
+    $('btn-saved').style.display = 'none'; clear($('save-list')); $('save-msg').textContent = '';
+    show('screen-blue');
+  }
+  $('btn-saved').onclick = function () {
+    var box = $('save-list'); clear(box); $('save-msg').textContent = 'Quem te salvou?';
+    var others = S.players.filter(function (p) { return p.role === 'runner' && p.state === 'alive' && p.id !== S.id; });
+    if (!others.length) { $('save-msg').textContent = 'Não há corredores vivos disponíveis.'; return; }
+    others.forEach(function (p) {
+      var b = mk('button', 'btn gray', p.name);
+      b.onclick = function () {
+        clear(box); $('save-msg').textContent = 'À espera da confirmação de ' + p.name + '…';
+        socket.emit('request_save', { saviorId: p.id });
+      };
+      box.appendChild(b);
+    });
+  };
+  socket.on('save_denied', function (d) { clear($('save-list')); $('save-msg').textContent = d.reason || 'Não foi possível salvar.'; });
+  socket.on('saved', function () { S.state = 'alive'; $('runner-msg').textContent = 'Foste salvo!'; goHome(); });
+  socket.on('prompt_save_confirmation', function (d) {
+    if (S.role !== 'runner' || S.state !== 'alive') return;
+    S.pendingVictim = d.victimId;
+    $('save-prompt-text').textContent = 'Está realmente a salvar o ' + d.victimName + ' que está a congelar?';
+    openModal('save-prompt');
+  });
+  $('btn-save-confirm').onclick = function () { closeModal('save-prompt'); socket.emit('confirm_save', { victimId: S.pendingVictim }); };
+  $('btn-save-cancel').onclick = function () { closeModal('save-prompt'); socket.emit('decline_save', { victimId: S.pendingVictim }); };
+  socket.on('save_error', function (d) { alert(d.message); });
+
+  /* ------------------------------- Fim de jogo ------------------------------- */
+  socket.on('game_over', function (d) {
+    S.over = true; stopQuiz(); clearInterval(T.hunter);
+    closeModal('capture-alert'); closeModal('capture-form'); closeModal('save-prompt');
+    clear($('popups')); S.popups = {};
+    var e = $('screen-end');
+    e.className = 'screen ' + (d.winner === 'runners' ? 'runners' : 'hunter');
+    $('end-text').textContent = d.winner === 'runners' ? 'Os corredores ganharam!' : 'O caçador ganhou!';
+    show('screen-end');
+  });
+
+  /* --------------------------- Votação de reinício --------------------------- */
+  $('btn-vote').onclick = function () { renderVote(); openModal('vote-modal'); };
+  $('btn-vote-close').onclick = function () { closeModal('vote-modal'); };
+  $('btn-vote-confirm').onclick = function () { if (S.voted) return; S.voted = true; socket.emit('vote_reset'); renderVote(); };
+  socket.on('vote_update', function (d) { S.votes = d.votes; S.voteTotal = d.total; renderVote(); });
+  function renderVote() {
+    var b = $('btn-vote-confirm');
+    b.textContent = S.voted ? 'Confirmado' : 'Confirmar'; b.disabled = S.voted;
+    $('vote-count').textContent = S.voted ? S.votes + ' / ' + S.voteTotal : '';
+    var bd = $('vote-badge');
+    if (S.votes > 0) { bd.style.display = 'block'; bd.textContent = S.votes + '/' + S.voteTotal; } else bd.style.display = 'none';
+  }
+
+  /* ------------------------------ Mapa em jogo ------------------------------ */
+  $('btn-map').onclick = function () { openModal('map-view'); };
+  $('map-view').onclick = function () { closeModal('map-view'); };
+
+  /* ------------------------------- Reset total ------------------------------- */
+  function resetGameLocal() {
+    stopQuiz(); clearInterval(T.rou); clearTimeout(T.rouEnd); clearInterval(T.hunter);
+    closeGameModals(); clear($('popups'));
+    S.role = null; S.state = 'alive'; S.matrix = 0; S.lastComp = null; S.cooldownEnd = 0;
+    S.popups = {}; S.voted = false; S.votes = 0; S.over = false;
+    $('runner-msg').textContent = ''; $('screen-end').className = 'screen';
+    updateMatrix(); renderVote();
+  }
+  function resetLocal(full) {
+    resetGameLocal();
+    $('btn-vote').hidden = true; $('btn-map').hidden = true;
+    if (full) { S.loggedIn = false; S.id = null; S.ready = false; S.mapData = null; $('map-preview').style.display = 'none'; }
+  }
+  socket.on('full_reset_lobby', function () {
+    resetLocal(false);
+    S.ready = false;
+    show('screen-lobby'); renderLobby();
+  });
+})();
+</script>
+</body>
+</html>
